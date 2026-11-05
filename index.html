@@ -148,7 +148,8 @@
      O código gerado na Fase 2 deve ser colado AQUI DENTRO (sem as crases, apenas o código puro)
      para que o Gerador possa injetá-lo no arquivo final.
      ========================================== -->
-<script type="text/template" id="<!DOCTYPE html>
+<script type="text/template" id="templateMoldeAluno">
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -327,7 +328,7 @@
 // ==========================================
 // 🔴 COLE SUA URL DO APPS SCRIPT ABAIXO
 // ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbwDjp1dJ1JNU16A3vZEtm4ZcCKPnl4foxvG_imIR-G5veNu5qMMrX379ul9ClDPMZF0Ew/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbx18bqqE9TIHbjczBMXdJ2n5Ot17b1NRZJJNzKtt7a1su4ifvLCO64eJVHJVdAxxsYd5g/exec";
 
 // Variáveis de Estado (Memória da Aplicação)
 let dadosDaAula = {};
@@ -363,7 +364,7 @@ async function validarPin() {
   document.getElementById("btnValidarPin").disabled = true;
   document.getElementById("load-pin").style.display = "block";
 
-  const res = await fetchAPI({ action: "login_professor", email: email, senha: senha });
+  const res = await fetchAPI({ action: "validar_pin", pin: pin });
   
   if(res.status === "sucesso") {
     dadosDaAula = res.json_aula; // O JSON gerado pela IA e salvo pelo professor
@@ -548,8 +549,7 @@ function mudarTela(atual, proxima) {
 </script>
 
 </body>
-</html>">
-
+</html>
 </script>
 
 <script>
@@ -645,6 +645,8 @@ async function gerarEnigmasIA() {
 async function salvarEGerarArquivo() {
   const pin = document.getElementById("inputPIN").value.trim().toUpperCase();
   const tema = document.getElementById("inputTema").value;
+  const turma = document.getElementById("inputPublico").value;
+  
   if(!pin) return alert("Você precisa definir um PIN de acesso para a turma.");
   
   // Constrói o JSON final a partir dos campos revisados
@@ -675,7 +677,7 @@ async function salvarEGerarArquivo() {
     
     // Injeta a URL da API no arquivo do aluno automaticamente!
     let htmlAlunoFinal = htmlAlunoOriginal.replace(
-      'const API_URL = "COLE_AQUI_A_URL_DO_SEU_WEB_APP";', 
+      'const API_URL = "https://script.google.com/macros/s/AKfycbx18bqqE9TIHbjczBMXdJ2n5Ot17b1NRZJJNzKtt7a1su4ifvLCO64eJVHJVdAxxsYd5g/exec";', 
       `const API_URL = "${API_URL}";`
     );
 
