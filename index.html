@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador Breakout Edu - Painel Docente</title>
+<style>
+  :root {
+    --bg-main: #f4f7f6;
+    --card-bg: #ffffff;
+    --primary: #2c3e50;
+    --accent: #2980b9;
+    --success: #27ae60;
+    --text: #333333;
+  }
+  body {
+    background-color: var(--bg-main); color: var(--text);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 20px; display: flex; justify-content: center;
+  }
+  .container { max-width: 900px; width: 100%; }
+  .card {
+    background: var(--card-bg); padding: 30px; border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 20px;
+    display: none; /* Controlado via JS */
+  }
+  .card.active { display: block; animation: fadeIn 0.4s; }
+  h1, h2, h3 { color: var(--primary); }
+  
+  label { display: block; font-weight: bold; margin-top: 15px; color: var(--primary); }
+  input[type="text"], input[type="password"], textarea {
+    width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc;
+    border-radius: 5px; box-sizing: border-box; font-family: inherit;
+  }
+  textarea { resize: vertical; }
+  
+  button {
+    background: var(--accent); color: white; font-weight: bold;
+    padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer;
+    margin-top: 20px; font-size: 16px; transition: 0.3s;
+  }
+  button:hover { background: #1f6391; }
+  button:disabled { background: #95a5a6; cursor: wait; }
+  button.btn-success { background: var(--success); width: 100%; font-size: 18px; padding: 15px;}
+  button.btn-success:hover { background: #219150; }
+  
+  .loader { display: none; color: var(--accent); font-weight: bold; margin-top: 10px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="container">
+  
+  <!-- TELA 1: LOGIN DO PROFESSOR -->
+  <div id="tela-login" class="card active">
+    <h1 style="text-align: center;">🎓 Portal Docente</h1>
+    <p style="text-align: center;">Acesso ao Gerador de Escape Room</p>
+    
+    <label>E-mail Institucional:</label>
+    <input type="text" id="loginEmail" placeholder="Ex: andrea@ufc.br">
+    
+    <label>Senha:</label>
+    <input type="password" id="loginSenha">
+    
+    <button onclick="fazerLogin()" style="width: 100%;">Entrar no Sistema</button>
+    <div id="load-login" class="loader">Autenticando...</div>
+  </div>
+
+  <!-- TELA 2: PAINEL DE CRIAÇÃO -->
+  <div id="tela-painel" class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h1>🛠️ Novo Escape Room</h1>
+      <span id="nomeDocente" style="font-weight: bold; color: var(--accent);"></span>
+    </div>
+    <hr>
+    
+    <!-- Passo 1: Metadados -->
+    <h2>1. Diretrizes Pedagógicas</h2>
+    <div class="grid-2">
+      <div>
+        <label>Tema da Aula:</label>
+        <input type="text" id="inputTema" placeholder="Ex: Fisiologia Respiratória">
+      </div>
+      <div>
+        <label>Público-Alvo e Semestre:</label>
+        <input type="text" id="inputPublico" placeholder="Ex: 4º Semestre Fisioterapia">
+      </div>
+    </div>
+    
+    <label>Fontes de Referência (Base para a IA):</label>
+    <textarea id="inputFontes" rows="3" placeholder="Cole aqui os tópicos, resumos ou diretrizes que os enigmas devem abordar..."></textarea>
+    
+    <button id="btnGerar" onclick="gerarEnigmasIA()">✨ Gerar Enigmas com Gemini AI</button>
+    <div id="load-ia" class="loader">A IA está desenhando a sua aula... Isso pode levar de 10 a 20 segundos. Aguarde!</div>
+  </div>
+
+  <!-- TELA 3: REVISÃO DOS ENIGMAS (Aparece após a IA responder) -->
+  <div id="tela-revisao" class="card">
+    <h2>2. Revisão e Refinamento</h2>
+    <p>A IA gerou a estrutura abaixo. Você pode editar qualquer texto ou senha antes de empacotar.</p>
+    
+    <label>Narrativa de Abertura (Contexto):</label>
+    <textarea id="revNarrativa" rows="3"></textarea>
+
+    <!-- Estrutura das 3 Fases -->
+    <div class="grid-2">
+      <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 15px;">
+        <h3 style="margin-top: 0;">Fase 1</h3>
+        <label>Contexto:</label><textarea id="f1-ctx" rows="2"></textarea>
+        <label>Enigma:</label><textarea id="f1-eni" rows="3"></textarea>
+        <label>Senha de Liberação:</label><input type="text" id="f1-pwd">
+      </div>
+      
+      <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 15px;">
+        <h3 style="margin-top: 0;">Fase 2</h3>
+        <label>Contexto:</label><textarea id="f2-ctx" rows="2"></textarea>
+        <label>Enigma:</label><textarea id="f2-eni" rows="3"></textarea>
+        <label>Senha de Liberação:</label><input type="text" id="f2-pwd">
+      </div>
+    </div>
+
+    <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 15px;">
+      <h3 style="margin-top: 0;">Fase 3 (Desafio Final)</h3>
+      <label>Contexto:</label><textarea id="f3-ctx" rows="2"></textarea>
+      <label>Enigma:</label><textarea id="f3-eni" rows="3"></textarea>
+      <label>Senha de Liberação:</label><input type="text" id="f3-pwd">
+    </div>
+    
+    <label>Mensagem de Vitória (Conclusão Pedagógica):</label>
+    <textarea id="revVitoria" rows="3"></textarea>
+
+    <hr style="margin: 30px 0;">
+    <h2>3. Empacotamento</h2>
+    <label>Crie o PIN de Acesso (Senha para os alunos entrarem na sala):</label>
+    <input type="text" id="inputPIN" placeholder="Ex: AULA-01" style="font-size: 20px; font-weight: bold; width: 50%;">
+    
+    <button id="btnSalvar" class="btn-success" onclick="salvarEGerarArquivo()">💾 Salvar na Planilha e Baixar Jogo HTML</button>
+    <div id="load-salvar" class="loader" style="text-align: center;">Registrando no banco de dados e gerando arquivo...</div>
+  </div>
+
+</div>
+
+<!-- ==========================================
+     MOLDE DO ALUNO (Omitido visualmente)
+     O código gerado na Fase 2 deve ser colado AQUI DENTRO (sem as crases, apenas o código puro)
+     para que o Gerador possa injetá-lo no arquivo final.
+     ========================================== -->
+<script type="text/template" id="<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Missão Educacional - Escape Room</title>
+<style>
+  :root {
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --text-main: #e0e0e0;
+    --accent: #00ffcc;
+    --error: #ff4c4c;
+    --success: #00cc66;
+  }
+  body {
+    background-color: var(--bg-color); color: var(--text-main);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 20px; display: flex; justify-content: center;
+  }
+  .container { max-width: 800px; width: 100%; }
+  .screen { display: none; background: var(--card-bg); padding: 30px; border-radius: 10px; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
+  .screen.active { display: block; animation: fadeIn 0.5s; }
+  h1, h2, h3 { color: var(--accent); text-align: center; }
+  
+  /* Inputs e Botões */
+  input[type="text"], input[type="password"] {
+    width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #333;
+    background: #2a2a2a; color: #fff; border-radius: 5px; box-sizing: border-box;
+  }
+  button {
+    background: var(--accent); color: #000; font-weight: bold;
+    padding: 12px 20px; border: none; border-radius: 5px; width: 100%;
+    cursor: pointer; margin-top: 15px; font-size: 16px; transition: 0.3s;
+  }
+  button:hover { opacity: 0.8; box-shadow: 0 0 10px var(--accent); }
+  button:disabled { background: #555; color: #888; cursor: not-allowed; box-shadow: none; }
+  
+  /* Jogo e Cadeados */
+  .timer-box { font-size: 32px; font-weight: bold; text-align: center; color: var(--error); margin: 20px 0; font-family: monospace; letter-spacing: 2px;}
+  .cadeado-box { background: #252525; padding: 20px; border-left: 4px solid var(--accent); margin-bottom: 20px; border-radius: 0 5px 5px 0;}
+  .cadeado-box.locked { opacity: 0.5; pointer-events: none; border-color: #555; }
+  .cadeado-box.solved { border-color: var(--success); opacity: 0.7; pointer-events: none; }
+  .membros-list { margin-bottom: 15px; }
+  .membro-item { display: flex; gap: 10px; margin-bottom: 10px; }
+  
+  /* Rubrica */
+  .rubrica-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  .rubrica-table th, .rubrica-table td { border: 1px solid #444; padding: 10px; text-align: center; }
+  .rubrica-table th { background: #333; color: var(--accent); }
+  .radio-btn { transform: scale(1.5); cursor: pointer; }
+  
+  /* Loading e Animações */
+  .loader { display: none; text-align: center; color: var(--accent); margin-top: 10px; font-weight: bold; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .shake { animation: shake 0.4s; border-color: var(--error) !important; }
+  @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }
+</style>
+</head>
+<body>
+
+<div class="container">
+  
+  <!-- TELA 1: LOGIN (PIN) -->
+  <div id="tela-pin" class="screen active">
+    <h1>🔒 Acesso à Missão</h1>
+    <p style="text-align: center;">Insira o código de acesso fornecido pela professora.</p>
+    <input type="text" id="inputPin" placeholder="Ex: FISIO-123" style="text-align: center; font-size: 20px; font-weight: bold; text-transform: uppercase;">
+    <button id="btnValidarPin" onclick="validarPin()">Verificar Código</button>
+    <div id="load-pin" class="loader">Conectando ao servidor da UFC...</div>
+  </div>
+
+  <!-- TELA 2: CREDENCIAMENTO -->
+  <div id="tela-checkin" class="screen">
+    <h2>📋 Credenciamento da Equipe</h2>
+    <p>Registre os agentes da sua equipe para liberar o dossiê da missão.</p>
+    
+    <label>Nome da Equipe:</label>
+    <input type="text" id="nomeEquipe" placeholder="Ex: Esquadrão Sinapse">
+    
+    <h3>Integrantes (Nome Completo)</h3>
+    <div id="lista-membros" class="membros-list">
+      <div class="membro-item">
+        <input type="text" class="membro-nome" placeholder="Agente 1 (Seu nome)">
+      </div>
+      <div class="membro-item">
+        <input type="text" class="membro-nome" placeholder="Agente 2">
+      </div>
+    </div>
+    <button onclick="adicionarMembro()" style="background: #333; color: white;">+ Adicionar Integrante</button>
+    
+    <button id="btnCheckin" onclick="fazerCheckin()" style="margin-top: 30px;">Assinar Dossiê e Iniciar Missão</button>
+    <div id="load-checkin" class="loader">Registrando equipe...</div>
+  </div>
+
+  <!-- TELA 3: O JOGO -->
+  <div id="tela-jogo" class="screen">
+    <h2 id="temaAula">Missão Ativa</h2>
+    <div class="timer-box" id="timerDisplay">40:00</div>
+    
+    <div class="cadeado-box" style="border-color: #888;">
+      <h3>📜 O Contexto</h3>
+      <p id="narrativaAbertura"></p>
+    </div>
+
+    <!-- Fase 1 -->
+    <div id="boxFase1" class="cadeado-box">
+      <h3>Fase 1: O Primeiro Desafio</h3>
+      <p id="f1-contexto"></p>
+      <p><strong>Desafio:</strong> <span id="f1-enigma"></span></p>
+      <input type="text" id="senhaFase1" placeholder="Digite a chave para destravar...">
+      <button onclick="tentarCadeado(1)">Desbloquear Fase 1</button>
+    </div>
+
+    <!-- Fase 2 (Inicialmente bloqueada) -->
+    <div id="boxFase2" class="cadeado-box locked">
+      <h3>Fase 2: Aprofundamento</h3>
+      <p id="f2-contexto"></p>
+      <p><strong>Desafio:</strong> <span id="f2-enigma"></span></p>
+      <input type="text" id="senhaFase2" placeholder="Digite a chave para destravar..." disabled>
+      <button id="btnF2" onclick="tentarCadeado(2)" disabled>Desbloquear Fase 2</button>
+    </div>
+
+    <!-- Fase 3 (Inicialmente bloqueada) -->
+    <div id="boxFase3" class="cadeado-box locked">
+      <h3>Fase 3: O Veredito Final</h3>
+      <p id="f3-contexto"></p>
+      <p><strong>Desafio:</strong> <span id="f3-enigma"></span></p>
+      <input type="text" id="senhaFase3" placeholder="Digite a chave para destravar..." disabled>
+      <button id="btnF3" onclick="tentarCadeado(3)" disabled>Desbloquear Fase 3</button>
+    </div>
+  </div>
+
+  <!-- TELA 4: AVALIAÇÃO FINAL -->
+  <div id="tela-avaliacao" class="screen">
+    <h1 id="tituloFim"></h1>
+    <p id="msgVitoria" style="text-align: center; margin-bottom: 30px;"></p>
+    
+    <h2>📊 Debriefing e Autoavaliação</h2>
+    <p>Discutam em equipe e selecionem o nível de desempenho em cada competência (1 = Iniciante, 4 = Exemplar):</p>
+    
+    <table class="rubrica-table">
+      <tr><th>Critério</th><th>1</th><th>2</th><th>3</th><th>4</th></tr>
+      <tr><td>Domínio Teórico e Conceitual</td>
+        <td><input type="radio" name="r_teoria" value="1" class="radio-btn"></td>
+        <td><input type="radio" name="r_teoria" value="2" class="radio-btn"></td>
+        <td><input type="radio" name="r_teoria" value="3" class="radio-btn"></td>
+        <td><input type="radio" name="r_teoria" value="4" class="radio-btn"></td>
+      </tr>
+      <tr><td>Resolução Lógica do Problema</td>
+        <td><input type="radio" name="r_resol" value="1" class="radio-btn"></td>
+        <td><input type="radio" name="r_resol" value="2" class="radio-btn"></td>
+        <td><input type="radio" name="r_resol" value="3" class="radio-btn"></td>
+        <td><input type="radio" name="r_resol" value="4" class="radio-btn"></td>
+      </tr>
+      <tr><td>Comunicação e Escuta Ativa</td>
+        <td><input type="radio" name="r_com" value="1" class="radio-btn"></td>
+        <td><input type="radio" name="r_com" value="2" class="radio-btn"></td>
+        <td><input type="radio" name="r_com" value="3" class="radio-btn"></td>
+        <td><input type="radio" name="r_com" value="4" class="radio-btn"></td>
+      </tr>
+      <tr><td>Gestão do Tempo / Colaboração</td>
+        <td><input type="radio" name="r_temp" value="1" class="radio-btn"></td>
+        <td><input type="radio" name="r_temp" value="2" class="radio-btn"></td>
+        <td><input type="radio" name="r_temp" value="3" class="radio-btn"></td>
+        <td><input type="radio" name="r_temp" value="4" class="radio-btn"></td>
+      </tr>
+    </table>
+    
+    <button id="btnEnviarNota" onclick="enviarAvaliacao()" style="margin-top: 30px;">Finalizar Missão e Enviar Relatório</button>
+    <div id="load-nota" class="loader">Enviando dados seguros ao servidor...</div>
+  </div>
+
+</div>
+
+<script>
+// ==========================================
+// 🔴 COLE SUA URL DO APPS SCRIPT ABAIXO
+// ==========================================
+const API_URL = "https://script.google.com/macros/s/AKfycbx18bqqE9TIHbjczBMXdJ2n5Ot17b1NRZJJNzKtt7a1su4ifvLCO64eJVHJVdAxxsYd5g/exec";
+
+// Variáveis de Estado (Memória da Aplicação)
+let dadosDaAula = {};
+let idDaEquipe = "";
+let pinAtivo = "";
+let tempoRestante = 40 * 60; // 40 minutos em segundos
+let timerInterval;
+let tempoGasto = 0;
+let statusFinal = "Esgotado";
+
+// --- Função Base de Comunicação com a API ---
+async function fetchAPI(payload) {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // Evita erro de CORS Preflight
+      body: JSON.stringify(payload),
+      redirect: "follow"
+    });
+    return await response.json();
+  } catch (error) {
+    alert("Erro de conexão. Verifique sua internet.");
+    console.error(error);
+    return { status: "erro" };
+  }
+}
+
+// --- FLUXO 1: Validar PIN ---
+async function validarPin() {
+  const pin = document.getElementById("inputPin").value.trim().toUpperCase();
+  if(!pin) return alert("Digite o código.");
+  
+  document.getElementById("btnValidarPin").disabled = true;
+  document.getElementById("load-pin").style.display = "block";
+
+  const res = await fetchAPI({ action: "validar_pin", pin: pin });
+  
+  if(res.status === "sucesso") {
+    dadosDaAula = res.json_aula; // O JSON gerado pela IA e salvo pelo professor
+    pinAtivo = pin;
+    mudarTela("tela-pin", "tela-checkin");
+  } else {
+    alert(res.mensagem || "Código inválido ou inativo.");
+  }
+  
+  document.getElementById("btnValidarPin").disabled = false;
+  document.getElementById("load-pin").style.display = "none";
+}
+
+// --- FLUXO 2: Check-in ---
+function adicionarMembro() {
+  const lista = document.getElementById("lista-membros");
+  if(lista.children.length >= 6) return alert("Máximo de 6 integrantes.");
+  const div = document.createElement("div");
+  div.className = "membro-item";
+  div.innerHTML = `<input type="text" class="membro-nome" placeholder="Agente ${lista.children.length + 1}">`;
+  lista.appendChild(div);
+}
+
+async function fazerCheckin() {
+  const equipe = document.getElementById("nomeEquipe").value.trim();
+  const inputs = document.querySelectorAll(".membro-nome");
+  const membros = Array.from(inputs).map(inp => inp.value.trim()).filter(val => val !== "");
+  
+  if(!equipe || membros.length < 2) return alert("Informe o nome da equipe e pelo menos 2 integrantes.");
+
+  document.getElementById("btnCheckin").disabled = true;
+  document.getElementById("load-checkin").style.display = "block";
+
+  const res = await fetchAPI({
+    action: "registrar_equipe",
+    pin: pinAtivo,
+    nome_equipe: equipe,
+    integrantes: membros.join(", ")
+  });
+
+  if(res.status === "sucesso") {
+    idDaEquipe = res.id_equipe;
+    prepararJogo();
+  } else {
+    alert("Erro ao registrar equipe.");
+    document.getElementById("btnCheckin").disabled = false;
+    document.getElementById("load-checkin").style.display = "none";
+  }
+}
+
+// --- FLUXO 3: O Jogo ---
+function prepararJogo() {
+  // Injeta os dados da aula na interface
+  document.getElementById("narrativaAbertura").innerText = dadosDaAula.narrativa_abertura;
+  
+  document.getElementById("f1-contexto").innerText = dadosDaAula.fase1.contexto;
+  document.getElementById("f1-enigma").innerText = dadosDaAula.fase1.enigma;
+  
+  document.getElementById("f2-contexto").innerText = dadosDaAula.fase2.contexto;
+  document.getElementById("f2-enigma").innerText = dadosDaAula.fase2.enigma;
+  
+  document.getElementById("f3-contexto").innerText = dadosDaAula.fase3.contexto;
+  document.getElementById("f3-enigma").innerText = dadosDaAula.fase3.enigma;
+
+  mudarTela("tela-checkin", "tela-jogo");
+  iniciarCronometro();
+}
+
+function tentarCadeado(fase) {
+  const inputEl = document.getElementById("senhaFase" + fase);
+  const tentativa = inputEl.value.trim().toLowerCase();
+  
+  // A senha armazenada no JSON carregado invisivelmente na memória
+  const senhaCorreta = dadosDaAula["fase"+fase].senha.toString().trim().toLowerCase();
+
+  if(tentativa === senhaCorreta) {
+    // Acertou
+    inputEl.disabled = true;
+    document.getElementById("boxFase"+fase).classList.add("solved");
+    document.getElementById("boxFase"+fase).classList.remove("shake");
+    
+    // Libera a próxima fase ou finaliza
+    if(fase < 3) {
+      const proxFase = fase + 1;
+      document.getElementById("boxFase" + proxFase).classList.remove("locked");
+      document.getElementById("senhaFase" + proxFase).disabled = false;
+      document.getElementById("btnF" + proxFase).disabled = false;
+    } else {
+      statusFinal = "Concluído";
+      encerrarMissao();
+    }
+  } else {
+    // Errou
+    inputEl.classList.add("shake");
+    setTimeout(() => inputEl.classList.remove("shake"), 400); // Tira a classe para poder animar de novo
+    inputEl.value = "";
+  }
+}
+
+function iniciarCronometro() {
+  const display = document.getElementById("timerDisplay");
+  timerInterval = setInterval(() => {
+    tempoRestante--;
+    tempoGasto++;
+    
+    let minutos = Math.floor(tempoRestante / 60);
+    let segundos = tempoRestante % 60;
+    display.innerText = `${minutos.toString().padStart(2, '0')}:${segundos.toString().padStart(2, '0')}`;
+    
+    if(tempoRestante <= 0) {
+      clearInterval(timerInterval);
+      statusFinal = "Esgotado";
+      encerrarMissao();
+    }
+  }, 1000);
+}
+
+// --- FLUXO 4: Avaliação Final ---
+function encerrarMissao() {
+  clearInterval(timerInterval);
+  
+  const titulo = document.getElementById("tituloFim");
+  const msg = document.getElementById("msgVitoria");
+  
+  if(statusFinal === "Concluído") {
+    titulo.innerText = "🏆 Missão Cumprida!";
+    titulo.style.color = "var(--success)";
+    msg.innerText = dadosDaAula.mensagem_vitoria;
+  } else {
+    titulo.innerText = "⏰ Tempo Esgotado!";
+    msg.innerText = "O tempo acabou, mas a aprendizagem continua. O que travou a equipe?";
+  }
+  
+  mudarTela("tela-jogo", "tela-avaliacao");
+}
+
+function getRadioValue(name) {
+  const options = document.getElementsByName(name);
+  for(let i=0; i<options.length; i++){
+    if(options[i].checked) return parseInt(options[i].value);
+  }
+  return 0;
+}
+
+async function enviarAvaliacao() {
+  const teoria = getRadioValue("r_teoria");
+  const resolucao = getRadioValue("r_resol");
+  const comunicacao = getRadioValue("r_com");
+  const tempo = getRadioValue("r_temp");
+  
+  if(teoria === 0 || resolucao === 0 || comunicacao === 0 || tempo === 0) {
+    return alert("Por favor, preencham a nota para todos os 4 critérios.");
+  }
+  
+  document.getElementById("btnEnviarNota").disabled = true;
+  document.getElementById("load-nota").style.display = "block";
+
+  const total = teoria + resolucao + comunicacao + tempo;
+  const notaCalculada = (total / 16) * 10; // Converte base 16 para base 10
+
+  const res = await fetchAPI({
+    action: "salvar_nota_final",
+    id_equipe: idDaEquipe,
+    status: statusFinal,
+    tempo: Math.floor(tempoGasto / 60) + " min", // Salva em minutos
+    rubrica: { teoria, resolucao, comunicacao, tempo },
+    nota: notaCalculada.toFixed(1)
+  });
+
+  if(res.status === "sucesso") {
+    document.getElementById("tela-avaliacao").innerHTML = `<h1 style="color:var(--success)">Relatório Transmitido.</h1><p style="text-align:center;">Podem fechar esta aba. Parabéns pelo empenho!</p>`;
+  } else {
+    alert("Erro ao enviar dados. O professor pode registrar a nota manualmente: " + notaCalculada.toFixed(1));
+  }
+}
+
+// --- Utilitário ---
+function mudarTela(atual, proxima) {
+  document.getElementById(atual).classList.remove("active");
+  document.getElementById(proxima).classList.add("active");
+}
+</script>
+
+</body>
+</html>">
+
+</script>
+
+<script>
+// ==========================================
+// 🔴 COLE SUA URL DO APPS SCRIPT ABAIXO
+// ==========================================
+const API_URL = "https://script.google.com/macros/s/AKfycbx18bqqE9TIHbjczBMXdJ2n5Ot17b1NRZJJNzKtt7a1su4ifvLCO64eJVHJVdAxxsYd5g/exec"; 
+
+let professorLogado = "";
+let emailProfessor = "";
+
+// --- Função Base de Comunicação ---
+async function fetchAPI(payload) {
+  try {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    return await response.json();
+  } catch (error) {
+    alert("Erro de comunicação com o servidor.");
+    console.error(error);
+    return { status: "erro" };
+  }
+}
+
+// --- FLUXO 1: Login ---
+async function fazerLogin() {
+  const email = document.getElementById("loginEmail").value;
+  const senha = document.getElementById("loginSenha").value;
+  if(!email || !senha) return alert("Preencha todos os campos.");
+  
+  document.getElementById("load-login").style.display = "block";
+  
+  const res = await fetchAPI({ action: "login_professor", email: email, senha: senha });
+  
+  if(res.status === "sucesso") {
+    professorLogado = res.professor;
+    emailProfessor = res.email;
+    document.getElementById("nomeDocente").innerText = "Prof(a). " + professorLogado;
+    document.getElementById("tela-login").classList.remove("active");
+    document.getElementById("tela-painel").classList.add("active");
+  } else {
+    alert(res.mensagem || "Credenciais incorretas.");
+  }
+  document.getElementById("load-login").style.display = "none";
+}
+
+// --- FLUXO 2: Gerar com IA ---
+async function gerarEnigmasIA() {
+  const tema = document.getElementById("inputTema").value;
+  const publico = document.getElementById("inputPublico").value;
+  const fontes = document.getElementById("inputFontes").value;
+  
+  if(!tema || !publico) return alert("Tema e Público-alvo são obrigatórios.");
+  
+  document.getElementById("btnGerar").disabled = true;
+  document.getElementById("load-ia").style.display = "block";
+  
+  const res = await fetchAPI({ action: "gerar_ia", tema, publico, fontes });
+  
+  if(res.status === "sucesso") {
+    const jsonIA = res.json_ia;
+    
+    // Injeta os dados da IA nos campos de revisão
+    document.getElementById("revNarrativa").value = jsonIA.narrativa_abertura;
+    
+    document.getElementById("f1-ctx").value = jsonIA.fase1.contexto;
+    document.getElementById("f1-eni").value = jsonIA.fase1.enigma;
+    document.getElementById("f1-pwd").value = jsonIA.fase1.senha;
+    
+    document.getElementById("f2-ctx").value = jsonIA.fase2.contexto;
+    document.getElementById("f2-eni").value = jsonIA.fase2.enigma;
+    document.getElementById("f2-pwd").value = jsonIA.fase2.senha;
+    
+    document.getElementById("f3-ctx").value = jsonIA.fase3.contexto;
+    document.getElementById("f3-eni").value = jsonIA.fase3.enigma;
+    document.getElementById("f3-pwd").value = jsonIA.fase3.senha;
+    
+    document.getElementById("revVitoria").value = jsonIA.mensagem_vitoria;
+    
+    document.getElementById("tela-revisao").classList.add("active");
+  } else {
+    alert("Falha ao gerar enigmas. Verifique sua cota da API do Gemini.");
+  }
+  
+  document.getElementById("btnGerar").disabled = false;
+  document.getElementById("load-ia").style.display = "none";
+}
+
+// --- FLUXO 3: Salvar e Baixar ---
+async function salvarEGerarArquivo() {
+  const pin = document.getElementById("inputPIN").value.trim().toUpperCase();
+  const tema = document.getElementById("inputTema").value;
+  if(!pin) return alert("Você precisa definir um PIN de acesso para a turma.");
+  
+  // Constrói o JSON final a partir dos campos revisados
+  const jsonFinal = {
+    narrativa_abertura: document.getElementById("revNarrativa").value,
+    fase1: { contexto: document.getElementById("f1-ctx").value, enigma: document.getElementById("f1-eni").value, senha: document.getElementById("f1-pwd").value },
+    fase2: { contexto: document.getElementById("f2-ctx").value, enigma: document.getElementById("f2-eni").value, senha: document.getElementById("f2-pwd").value },
+    fase3: { contexto: document.getElementById("f3-ctx").value, enigma: document.getElementById("f3-eni").value, senha: document.getElementById("f3-pwd").value },
+    mensagem_vitoria: document.getElementById("revVitoria").value
+  };
+
+  document.getElementById("btnSalvar").disabled = true;
+  document.getElementById("load-salvar").style.display = "block";
+
+  // 1. Salva na Planilha
+  const res = await fetchAPI({
+    action: "salvar_planejamento", 
+    pin: pin, 
+    email_prof: emailProfessor, // Envia o email
+    tema: tema, 
+    turma: turma,               // Envia a turma
+    json_aula: jsonFinal  
+  });
+
+  if(res.status === "sucesso") {
+    // 2. Montar e Baixar o Arquivo do Aluno
+    let htmlAlunoOriginal = document.getElementById("templateMoldeAluno").innerHTML;
+    
+    // Injeta a URL da API no arquivo do aluno automaticamente!
+    let htmlAlunoFinal = htmlAlunoOriginal.replace(
+      'const API_URL = "COLE_AQUI_A_URL_DO_SEU_WEB_APP";', 
+      `const API_URL = "${API_URL}";`
+    );
+
+    // Cria o arquivo virtual (Blob) e força o download
+    const blob = new Blob([htmlAlunoFinal], { type: "text/html" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `EscapeRoom_${pin}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    alert("Aula salva! O arquivo EscapeRoom_" + pin + ".html foi baixado para o seu computador. Envie este arquivo para os alunos!");
+  } else {
+    alert("Erro ao salvar no banco de dados.");
+  }
+  
+  document.getElementById("btnSalvar").disabled = false;
+  document.getElementById("load-salvar").style.display = "none";
+}
+</script>
+
+</body>
+</html>
