@@ -363,7 +363,7 @@ async function validarPin() {
   document.getElementById("btnValidarPin").disabled = true;
   document.getElementById("load-pin").style.display = "block";
 
-  const res = await fetchAPI({ action: "validar_pin", pin: pin });
+  const res = await fetchAPI({ action: "login_professor", email: email, senha: senha });
   
   if(res.status === "sucesso") {
     dadosDaAula = res.json_aula; // O JSON gerado pela IA e salvo pelo professor
